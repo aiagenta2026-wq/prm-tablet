@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRM ULTRA SYSTEM</title>
+<style>
+body{margin:0;font-family:Segoe UI;background:#0f0f0f;color:white}
+header{background:#8b0000;padding:15px;text-align:center;font-size:22px;font-weight:bold}
+.clock{font-size:14px}
+.container{padding:15px}
+.card{background:#1c1c1c;padding:15px;margin-bottom:15px;border-radius:8px}
+input,select,textarea{width:100%;padding:8px;margin:5px 0;border-radius:5px;border:none}
+button{padding:8px;border:none;border-radius:5px;background:#b30000;color:white;cursor:pointer;margin-top:5px}
+button:hover{background:red}
+.badge{padding:4px 6px;border-radius:4px;font-size:12px}
+.hidden{display:none}
+.status-WOLNY{background:green}
+.status-W-DRODZE{background:orange}
+.status-NA-MIEJSCU{background:blue}
+.status-TRANSPORT{background:purple}
+.status-SZPITAL{background:brown}
+.status-ZAKOŃCZONE{background:gray}
+</style>
+</head>
+<body>
+
+<header>
+🚑 PRM ULTRA – TABLET ZRM
+<div class="clock" id="clock"></div>
+</header>
+
+<div class="container">
+
+<div id="loginPanel" class="card">
+<h3>Logowanie</h3>
+<input type="text" id="login" placeholder="Login">
+<input type="password" id="password" placeholder="Hasło">
+<button onclick="login()">Zaloguj</button>
+</div>
+
+<div id="mainPanel" class="hidden">
+
+<div class="card" id="dispatcherPanel">
+<h3>Panel Dyspozytora</h3>
+<input type="text" id="location" placeholder="Lokalizacja">
+<select id="category">
+<option>NZK</option>
+<option>Uraz</option>
+<option>Wypadek</option>
+<option>Zasłabnięcie</option>
+</select>
+<select id="priority">
+<option>PILNE</option>
+<option>PLANOWE</option>
+</select>
+<button onclick="addCall()">Dodaj Wezwanie</button>
+</div>
+
+<div class="card">
+<h3>Wezwania</h3>
+<div id="calls"></div>
+</div>
+
+</div>
+
+</div>
+
+<script>
+let currentUser=null;
+let calls=JSON.parse(localStorage.getItem("ULTRA_CALLS"))||[];
+
+function clock(){
+document.getElementById("clock").innerHTML=
+new Date().toLocaleString("pl-PL",{timeZone:"Europe/Warsaw"});
+}
+setInterval(clock,1000);clock();
+
+function login(){
+let l=document.getElementById("login").value;
+let p=document.getElementById("password").value;
+
+if(l==="admin"&&p==="1234"){currentUser="Dyspozytor";}
+else if(l==="zrm"&&p==="1234"){currentUser="Ratownik";}
+else if(l==="kierownik"&&p==="1234"){currentUser="Kierownik";}
+else{alert("Błędne dane");return;}
+
+document.getElementById("loginPanel").classList.add("hidden");
+document.getElementById("mainPanel").classList.remove("hidden");
+if(currentUser!=="Dyspozytor"){
+document.getElementById("dispatcherPanel").classList.add("hidden");
+}
+render();
+}
+
+function save(){
+localStorage.setItem("ULTRA_CALLS",JSON.stringify(calls));
+}
+
+function addCall(){
+let loc=document.getElementById("location").value;
+let cat=document.getElementById("category").value;
+let pr=document.getElementById("priority").value;
+calls.push({
+id:Date.now(),
+location:loc,
+category:cat,
+priority:pr,
+status:"WOLNY",
+patients:[],
+time:new Date().toLocaleString("pl-PL",{timeZone:"Europe/Warsaw"})
+});
+save();render();
+}
+
+function changeStatus(id){
+let s=prompt("Status: WOLNY / W-DRODZE / NA-MIEJSCU / TRANSPORT / SZPITAL / ZAKOŃCZONE");
+let c=calls.find(x=>x.id===id);
+if(s){c.status=s;save();render();}
+}
+
+function addPatient(id){
+let name=prompt("Imię i nazwisko:");
+let age=prompt("Wiek:");
+let desc=prompt("Opis stanu:");
+let c=calls.find(x=>x.id===id);
+c.patients.push({name,age,desc});
+save();render();
+}
+
+function render(){
+let box=document.getElementById("calls");
+box.innerHTML="";
+calls.forEach(c=>{
+box.innerHTML+=`
+<div class="card">
+ID: ${c.id}<br>
+Czas: ${c.time}<br>
+Lokalizacja: ${c.location}<br>
+Kategoria: ${c.category}<br>
+Priorytet: ${c.priority}<br>
+Status: <span class="badge status-${c.status}">${c.status}</span><br>
+Pacjenci: ${c.patients.map(p=>p.name+" ("+p.age+")").join(", ")||"Brak"}<br>
+<button onclick="changeStatus(${c.id})">Zmień Status</button>
+<button onclick="addPatient(${c.id})">Dodaj Pacjenta</button>
+</div>`;
+});
+}
+render();
+</script>
+
+</body>
+</html>
